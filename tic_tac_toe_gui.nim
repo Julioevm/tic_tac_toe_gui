@@ -175,13 +175,13 @@ proc cli*() =
         else:
             discard
 
-    let g = newGame(aiPlayer, difficulty)
-    g.startGame()   
+    let game = newGame(aiPlayer, difficulty)
+    game.startGame()   
 
 proc gui*() =
-    var mainWindow = newWindow("tic_tac_toe", 400, 500, true)
+    var mainWindow = newWindow("tic_tac_toe", 200, 300, true)
 
-    var game = newGame(aiPlayer="o", difficulty=9)
+    var game = newGame(aiPlayer="O", difficulty=9)
 
     var currentMove = -1
     mainWindow.margined = true
@@ -205,6 +205,31 @@ proc gui*() =
                                         b.text = $i
                                         b.enable()))
 
+    proc aiPlay() =
+        if game.currentPlayer == game.aiPlayer:
+            let emptySpots = game.board.emptySpots()
+            if len(emptySpots) <= game.difficulty:
+                let move = game.getBestMove(game.board, game.aiPlayer)
+                game.board.list[move.pos] = game.aiPlayer
+                buttons[move.pos].disable()
+            else:
+                let rndmove = emptySpots.rand()
+                game.board.list[rndmove] = game.aiPlayer
+        game.changePlayer()
+        labelInfo.text = "Current player: " & game.currentPlayer
+        
+        for i, v in game.board.list.pairs:
+            buttons[i].text = v
+            
+        let (done, winner) = game.board.done()
+        
+        if done == true:
+            echo game.board
+            if winner == "tie":
+                labelInfo.text = "Tie.."
+            else:
+                labelInfo.text = winner & " won."
+
     for i in countUp(0, 8):
         var handler : proc()
         closureScope:
@@ -225,8 +250,7 @@ proc gui*() =
                     else:
                         labelInfo.text = "The " & winner & " player won!"
                 else:
-                    echo "AI Turn"
-                    # aiPlay()
+                    aiPlay()
                 buttons[senderId].disable()
         buttons.add(newButton($i, handler))
 
