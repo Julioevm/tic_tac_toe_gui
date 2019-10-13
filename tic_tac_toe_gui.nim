@@ -48,7 +48,7 @@ proc emptySpots(this:Board):seq[int] =
     return emptyindices
 
 type 
-    Move = tuple[score: int, pos: int]
+    Move = tuple[score: int, pos: int, depth: int]
 
 proc `<` (a, b: Move): bool =
     return a.score < b.score
@@ -78,17 +78,18 @@ proc newGame(aiPlayer:string="", difficulty:int=9): Game =
 proc changePlayer(this:Game) : void =
     this.currentPlayer = nextPlayer[this.currentPlayer]
 
-proc getBestMove(this: Game, board: Board, player: string): Move =
+proc getBestMove(this: Game, board: Board, player: string, moveDepth = 0): Move =
 
+    let currentDepth = moveDepth
     let (done, winner) = board.done()
 
     if done:
         if winner == this.aiPlayer:
-            return (score: 10, pos: 0)
+            return (score: 10, pos: 0, depth: currentDepth)
         elif winner != "tie":
-            return (score: -10, pos: 0)
+            return (score: -10, pos: 0, depth: currentDepth)
         else:
-            return (score: 0, pos: 0)
+            return (score: 0, pos: 0, depth: currentDepth)
     
     let emptySpots = board.emptySpots()
     var moves = newSeq[Move]()
@@ -101,9 +102,11 @@ proc getBestMove(this: Game, board: Board, player: string): Move =
         # Add a move on the next empty spot
         newBoard.list[pos] = player
         # Call this method recursively on the current move changing the player
-        let score = this.getBestMove(newBoard, nextPlayer[player]).score
+        let aMove = this.getBestMove(newBoard, nextPlayer[player], currentDepth + 1)
+        let score = aMove.score
+        let depth = aMove.depth
         let pos = pos
-        let move = (score:score, pos:pos)
+        let move = (score:score, pos:pos, depth:depth)
         moves.add(move)
 
     if player == this.aiPlayer:
@@ -210,6 +213,7 @@ proc gui*() =
             let emptySpots = game.board.emptySpots()
             if len(emptySpots) <= game.difficulty:
                 let move = game.getBestMove(game.board, game.aiPlayer)
+                echo "Move tree depth: " & $move.depth
                 game.board.list[move.pos] = game.aiPlayer
                 buttons[move.pos].disable()
             else:
